@@ -6,7 +6,7 @@ C++ implementation of learning Fisher vectors using VlFeat. In addition the fish
 * Boost
 * Eigen
 * OpenCV
-* VlFeat
+* <a href=http://www.vlfeat.org/>VlFeat</a>
 
 ## Training
 * Extract Dense SIFTs from a set of labeled images
