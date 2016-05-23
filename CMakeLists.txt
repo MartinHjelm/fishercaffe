@@ -17,8 +17,7 @@ SET(CMAKE_MODULE_PATH "/usr/local/Cellar/eigen/3.2.8/share/cmake/Modules;${CMAKE
 FIND_PACKAGE(Eigen3 REQUIRED )
 
 
-SET(VLFEAT_INCLUDE_DIRS "PATH-TO/vlfeat")
-SET(VLFEAT_LIBS "PATH-TO/vlfeat")
+SET(VLFEAT_INCLUDE_DIRS "PATH TO VLFEAT")
 
 FIND_PACKAGE(Boost COMPONENTS random system filesystem thread date_time iostreams serialization chrono REQUIRED)
 # Might be needed if using homebrew
@@ -26,8 +25,9 @@ FIND_PACKAGE(Boost COMPONENTS random system filesystem thread date_time iostream
 
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${VLFEAT_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
+
 ADD_DEFINITIONS("-DVL_DISABLE_AVX")
-FILE(GLOB SOURCES "PATH-TO"vlfeat/vl/*.c)
+FILE(GLOB SOURCES vlfeat/vl/*.c) # PATH TO vlfeat so we can do ugly glob
 MESSAGE(STATUS "    sources path: ${SOURCES}")
 ADD_LIBRARY(vlfeats ${SOURCES} )
 
