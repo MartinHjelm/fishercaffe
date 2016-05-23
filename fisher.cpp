@@ -97,7 +97,6 @@ int main (int argc, const char * argv[])
     computeDSift(fileList,siftMatVec,true);
 
 
-
     // ### COMPUTE PCA PROJECTION
     std::cout << "\n\033[92m" << "# Computing PCA..." << "\033[0m\n" << std::flush;
     // I know this is ugly...
@@ -151,13 +150,9 @@ int main (int argc, const char * argv[])
 
 
     // ### CONCATENATE THE FISHER AND THE CAFFE VECTOR
-    Eigen::MatrixXd Xfc = Eigen::MatrixXd::Zero(fileList.size(),Xfisher.cols()+Xcaffe.cols());
-    for(int idx = 0; idx < fileList.size(); idx++)
-    {
-      Xfc.block(idx,0,1,Xfisher.cols()) = Xfisher.row(idx);
-      Xfc.block(idx,Xfisher.cols(),1,Xcaffe.cols()) = Xcaffe.row(idx);
-    }
-    writeMatrix2File(Xfc, "FisherCafffeVec.txt");
+    Eigen::MatrixXd Xfc(fileList.size(),Xfisher.cols()+Xcaffe.cols());
+    Xfc << Xfisher, Xcaffe;
+    // writeMatrix2File(Xfc, "FisherCafffeVec.txt");
 
 
     // ### TRAIN SVM MODELS 
@@ -230,9 +225,8 @@ int main (int argc, const char * argv[])
       computeFisherVector(siftMatVec, gmmParams, Xfisher, false); 
 
       // ### CONCATENATE FISHER AND CAFFE VECTORS
-      Eigen::MatrixXd Xfc = Eigen::MatrixXd::Zero(1,Xfisher.cols()+Xcaffe.cols());
-      Xfc.block(0,0,1,Xfisher.cols()) = Xfisher.row(0);
-      Xfc.block(0,Xfisher.cols(),1,Xcaffe.cols()) = Xcaffe.row(iFile);
+      Eigen::MatrixXd Xfc(1,Xfisher.cols()+Xcaffe.cols());
+      Xfc << Xfisher.row(0), Xcaffe.row(iFile);      
 
       // ### DO PREDICTION 
       std::vector<int> predVec;
@@ -343,11 +337,8 @@ computeDSift(const std::vector<std::string> &fileList, std::vector<Eigen::Matrix
       }
     }
 
-    // create filter
     VlDsiftFilter* vlf = vl_dsift_new_basic(img.cols, img.rows, 4, 8);
-    // call processing function of vl
     vl_dsift_process(vlf, &imgvec[0]);
-
     img.release();  
     // std::cout << "Number of keypoints: " << vl_dsift_get_descriptor_size(vlf) << std::flush << std::endl;
     // std::cout  << "Descriptor size: " << vl_dsift_get_keypoint_num(vlf) << std::flush << std::endl;
@@ -392,21 +383,20 @@ computeGMM(const std::vector<Eigen::MatrixXd> &siftMatVec, gmmModel &gmmParams, 
   convVec2EigenMat(siftMatVec,Xsifts);    
 
   // Map feature eigen matrix to C float
+  // The transpose is there since Eigen saves in column major and vlfeat assummens features 
+  // stacked ontop of each other. If we didn't do transpose we would have X_11 X_21 X_31... 
+  // instead of X_11 X_12 X_13
   double * Xdouble = (double*) vl_malloc(sizeof(double) * Xsifts.rows() * Xsifts.cols() ) ;
-  Eigen::Map<Eigen::MatrixXd>( Xdouble, Xsifts.rows(), Xsifts.cols() ) = Xsifts;
+  Eigen::Map<Eigen::MatrixXd>( Xdouble, Xsifts.cols(), Xsifts.rows() ) = Xsifts.transpose();
 
-  // Compute Codebook i.e. the GMM, over the training data
+  // Compute the GMM
   vl_size dimension = Xsifts.cols();
   int Npts = Xsifts.rows();  
   int numClusters = gmmParams.Nclusters;  
 
-  // create a new instance of a GMM object for float data
   VlGMM* gmm = vl_gmm_new (VL_TYPE_DOUBLE, dimension, numClusters) ;
-  // set the maximum number of EM iterations to 100
   vl_gmm_set_max_num_iterations (gmm, 100) ;
-  // set the initialization to kMeans
   vl_gmm_set_initialization (gmm,VlGMMKMeans);
-  // Set verbosity
   int level = 0;
   if(verbose) level = 2;
   vl_gmm_set_verbosity (gmm,level);
@@ -414,7 +404,7 @@ computeGMM(const std::vector<Eigen::MatrixXd> &siftMatVec, gmmModel &gmmParams, 
   if(verbose) std::cout << "Running..." << std::endl << std::flush;
   vl_gmm_cluster (gmm, Xdouble, Xsifts.rows() );
 
-  // Save the params to struct
+  // Save the params to struct mean and covariance
   gmmParams.means = Eigen::Map<Eigen::MatrixXd>( (double*) vl_gmm_get_means(gmm), 1, dimension*numClusters);
   gmmParams.covs = Eigen::Map<Eigen::MatrixXd>( (double*) vl_gmm_get_covariances(gmm), 1, dimension*numClusters);
   gmmParams.priors = Eigen::Map<Eigen::MatrixXd>( (double*) vl_gmm_get_priors(gmm), 1, numClusters);
@@ -448,7 +438,7 @@ computeFisherVector(const std::vector<Eigen::MatrixXd> &siftMatVec, const gmmMod
   for(int idx = 0; idx < siftMatVec.size(); idx++)
   {       
     double * X = (double*) vl_malloc(sizeof(double) * siftMatVec[idx].rows() * siftMatVec[idx].cols() ) ;
-    Eigen::Map<Eigen::MatrixXd>( X, siftMatVec[idx].rows(), siftMatVec[idx].cols() ) = siftMatVec[idx];
+    Eigen::Map<Eigen::MatrixXd>( X, siftMatVec[idx].cols(), siftMatVec[idx].rows() ) = siftMatVec[idx].transpose();
 
     double* enc = (double*) vl_malloc(sizeof(double) * 2 * dimension * numClusters);
     vl_fisher_encode(enc, VL_TYPE_DOUBLE, gmmMeans, dimension,
