@@ -19,7 +19,6 @@ C++ implementation of learning Fisher vectors using VlFeat. In addition the fish
 ## Test
 * Extract Dense SIFTs from the set of test images
 * PCA Project
-* Compute GMM using EM
 * Compute Fisher Vector for the images from the trained GMM
 * Add additional features.
 * Classify using linear SVM
