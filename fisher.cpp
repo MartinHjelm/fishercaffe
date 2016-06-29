@@ -57,24 +57,6 @@ int main (int argc, const char * argv[])
   std::string todo = "";
   if(argc > 1) todo = std::string(argv[1]);
 
-  bool doPredict = false;
-  std::string fName = "";
-  if(todo.compare("predict")==0)
-  {
-    doPredict = true;
-    std::cout << "\n\033[92m" << "# Running prediction..." << "\033[0m\n" << std::flush;
-  }
-  else if(todo.compare("predict")==0)
-  {
-    std::cout << "\n\033[92m" << "# Training model..." << "\033[0m\n" << std::flush;
-  }
-  else
-  {
-    std::cout << "\n\033[92m" << "You need to provide argument: train or predict!" << "\033[0m\n" << std::flush;
-    return 0;
-  }
-
-
   // Set up data paths we should enable this as a argument instead. 
   std::string dataTrainPath = "train";
   std::string dataTestPath = "test";
@@ -84,7 +66,8 @@ int main (int argc, const char * argv[])
 
   if(todo.compare("train")==0)
   {       
-
+    std::cout << "\n\033[92m" << "# Training model..." << "\033[0m\n" << std::flush;
+    
     // ### GET LIST OF FILES AND THEIR CORRESPONDING LABEL
     // Use image names as label assignments
     std::vector<int> labels;
@@ -179,10 +162,11 @@ int main (int argc, const char * argv[])
     std::cout << "Percent Correct: " << 100*( (float)Ncorrect/(float)predictedLabels.size() ) << std::endl;
 
   }
-  else
+  else if(todo.compare("predict")==0)
   {
     // Do prediction with learned model
- 
+    std::cout << "\n\033[92m" << "# Running prediction..." << "\033[0m\n" << std::flush;
+    
     // ### Get test files
     std::vector<int> labels;
     std::vector<std::string> fileList;
@@ -246,6 +230,11 @@ int main (int argc, const char * argv[])
     std::cout << "Percent Correct: " << 100*( (float)Ncorrect/(float)predictedLabels.size() ) << std::endl;
     
     writeVecToFile("labelpredictions.txt", predictedLabels, "\n");
+  }
+  else
+  {
+    std::cout << "\n\033[92m" << "You need to provide argument: train or predict!" << "\033[0m\n" << std::flush;
+    return 0;
   }
 
   return 0;
